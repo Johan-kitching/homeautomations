@@ -2,7 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Models\MqttLogs;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use PhpMqtt\Client\ConnectionSettings;
 use PhpMqtt\Client\MqttClient;
 use PhpMqtt\Client\Repositories\MemoryRepository;
@@ -48,11 +51,16 @@ class MqttListener extends Command
         $mqtt = new MqttClient($server, $port, $clientId, $mqtt_version);
 
         $mqtt->connect($connectionSettings, $clean_session);
-        printf("client connected\n");
+        //printf("client connected\n");
 
         $mqtt->subscribe('#', function ($topic, $message) {
-            printf("Received message on topic [%s]: %s\n", $topic, $message);
-            // Save the message to the database
+            $data=['topic'=>$topic, 'message'=>$message, 'created_at'=>Carbon::now()];
+            if(DB::table('mqtt_logs')->insert($data)) {
+                printf("Received message on topic [%s]: %s\n", $topic, $message);
+            }else{
+                printf("Failed message on topic [%s]: %s\n", $topic, $message);
+            }
+            /// Save the message to the database
         }, 0);
 
         $mqtt->loop(true);
