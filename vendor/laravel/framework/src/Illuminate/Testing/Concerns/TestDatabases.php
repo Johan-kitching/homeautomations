@@ -20,6 +20,13 @@ trait TestDatabases
     protected static $schemaIsUpToDate = false;
 
     /**
+     * The root database name prior to concatenating the token.
+     *
+     * @var null|string
+     */
+    protected static $originalDatabaseName = null;
+
+    /**
      * Boot a test database.
      *
      * @return void
@@ -42,6 +49,7 @@ trait TestDatabases
             $databaseTraits = [
                 Testing\DatabaseMigrations::class,
                 Testing\DatabaseTransactions::class,
+                Testing\DatabaseTruncation::class,
                 Testing\RefreshDatabase::class,
             ];
 
@@ -87,7 +95,7 @@ trait TestDatabases
             $this->usingDatabase($testDatabase, function () {
                 Schema::hasTable('dummy');
             });
-        } catch (QueryException $e) {
+        } catch (QueryException) {
             $this->usingDatabase($database, function () use ($testDatabase) {
                 Schema::dropDatabaseIfExists($testDatabase);
                 Schema::createDatabase($testDatabase);
@@ -140,6 +148,10 @@ trait TestDatabases
      */
     protected function whenNotUsingInMemoryDatabase($callback)
     {
+        if (ParallelTesting::option('without_databases')) {
+            return;
+        }
+
         $database = DB::getConfig('database');
 
         if ($database !== ':memory:') {
@@ -181,6 +193,12 @@ trait TestDatabases
      */
     protected function testDatabase($database)
     {
+        if (! isset(self::$originalDatabaseName)) {
+            self::$originalDatabaseName = $database;
+        } else {
+            $database = self::$originalDatabaseName;
+        }
+
         $token = ParallelTesting::token();
 
         return "{$database}_test_{$token}";

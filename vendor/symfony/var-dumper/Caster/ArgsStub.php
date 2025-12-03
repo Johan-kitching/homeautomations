@@ -28,7 +28,7 @@ class ArgsStub extends EnumStub
 
         $values = [];
         foreach ($args as $k => $v) {
-            $values[$k] = !is_scalar($v) && !$v instanceof Stub ? new CutStub($v) : $v;
+            $values[$k] = !\is_scalar($v) && !$v instanceof Stub ? new CutStub($v) : $v;
         }
         if (null === $params) {
             parent::__construct($values, false);
@@ -42,10 +42,9 @@ class ArgsStub extends EnumStub
             $params[] = $variadic;
         }
         if (['...'] === $params) {
-            $this->dumpKeys = false;
-            $this->value = $values[0]->value;
+            parent::__construct($values[0]->value, false);
         } else {
-            $this->value = array_combine($params, $values);
+            parent::__construct(array_combine($params, $values));
         }
     }
 
